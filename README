@@ -1,0 +1,52 @@
+HTML - C#-Klassenbibliothek zum Generieren von HTML-Code.
+Im Namespace HTML sind Klassen enthalten, die es ermöglichen, mittels C#-Code objektorierentiert HTML-Seiten als htm-Datei zu generieren. Eigenschaften der Klassen steuern das Layout als CSS-Inline-Code.
+
+Verfügbare Klassen:
+HtmlPage, HtmlParagraph, HtmlTable, HtmlAnchor, HtmlImg, u.a.
+
+Verfügbare CSS-Tags:
+background-color, border-color, border-style, border-width, color, float, font-familiy, font-size, font-style, font-style, font-weight, height, text-align, line-height, margin, padding, text-decoration, title, width, u.a.
+
+Sample: Dieser C#-Code generiert folgenden HTML-Code.
+
+C#
+----------------------------------------------------------
+HtmlPage page = new HtmlPage("Aufsatz");
+page.Author = "Sebastian";
+page.BackgroundColor = Color.LightGray;
+page.FontFamily = HTML.FontFamily.SansSerif;
+page.FontSize = 13;
+
+HtmlParagraph headline = new HtmlParagraph();
+headline.Text = "Unsere Klassenfahrt";
+headline.Typ = ParagraphTyp.HeadLine2;
+headline.Color = Color.DarkBlue;
+page.Add(headline);
+
+HtmlParagraph maintext = new HtmlParagraph();
+maintext.Text = "Wir sind an die Ostsee gefahren. Dort war es sehr schön.";
+maintext.Width = 400;
+page.Add(maintext);
+
+HtmlAnchor anchor = new HtmlAnchor();
+anchor.Url = @"https://www.google.de/#q=ostsee";
+anchor.Text = "Ostsee";
+page.Add(anchor);
+
+string filename = "aufsatz.htm";
+page.Save(filename);
+
+
+HTML
+----------------------------------------------------------
+<html>
+<head>
+<title>Aufsatz</title>
+<meta name="author" content="Sebastian">
+</head>
+<body style="font-family:sans-serif;font-size:13px;background-color:rgb(211,211,211);" >
+<h2 style="color:rgb(0,0,139);" >Unsere Klassenfahrt</h2>
+<p style="width:400px;" >Wir sind an die Ostsee gefahren. Dort war es sehr sch&#246;n.</p>
+<a href="https://www.google.de/#q=ostsee" >Ostsee</a>
+</body>
+</html>
