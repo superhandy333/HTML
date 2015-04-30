@@ -1,8 +1,7 @@
 ﻿/* HTML       C# Klassenbibliothek zum Generieren von HTML-Code
  * ------------------------------------------------------------
- * Anwendung: Testanwendung
  * Datei:     html.cs
- * Version:   24.10.2014
+ * Version:   30.04.2015
  * Besitzer:  Mathias Rentsch (rentsch@online.de)
  * Lizenz:    GPL
  *
@@ -113,27 +112,27 @@ namespace HTML
             Text = text;
         }
 
-        public HtmlText(string text, FontFamily font, FontWeight weight)
+        public HtmlText(string text, FontFamilyTyp font, FontWeight weight)
         {
             Text = text;
             FontFamily = font;
             FontWeight = weight;
         }
 
-        public HtmlText(string text, FontFamily font)
+        public HtmlText(string text, FontFamilyTyp font)
         {
             Text = text;
             FontFamily = font;
         }
 
-        public HtmlText(string text, FontFamily font, int size)
+        public HtmlText(string text, FontFamilyTyp font, int size)
         {
             Text = text;
             FontFamily = font;
             FontSize = size;
         }
 
-        public HtmlText(string text, FontFamily font, int size, FontWeight weight)
+        public HtmlText(string text, FontFamilyTyp font, int size, FontWeight weight)
         {
             Text = text;
             FontFamily = font;
@@ -141,7 +140,7 @@ namespace HTML
             FontWeight = weight;
         }
 
-        public HtmlText(FontFamily font, int size, FontWeight weight)
+        public HtmlText(FontFamilyTyp font, int size, FontWeight weight)
         {
             FontFamily = font;
             FontSize = size;
@@ -159,7 +158,7 @@ namespace HTML
             FontWeight = weight;
         }
 
-        public HtmlText(FontFamily font, FontWeight weight)
+        public HtmlText(FontFamilyTyp font, FontWeight weight)
         {
             FontFamily = font;
             FontWeight = weight;
@@ -176,12 +175,12 @@ namespace HTML
             FontSize = size;
         }
 
-        public HtmlText(FontFamily font)
+        public HtmlText(FontFamilyTyp font)
         {
             FontFamily = font;
         }
 
-        public HtmlText(FontFamily font, int size)
+        public HtmlText(FontFamilyTyp font, int size)
         {
             FontFamily = font;
             FontSize = size;
@@ -212,7 +211,37 @@ namespace HTML
         }
     }
 
+    public class HtmlUniversal : HtmlElement
+    {
+        public string TagName = "span";
+        public HtmlUniversal()
+        {
 
+        }
+
+        public HtmlUniversal(string tagname)
+        {
+            TagName = tagname;
+        }
+
+        protected override Tag getTag()
+        {
+            Tag tag = base.getTag();
+            return tag;
+        }
+
+        public override string GetHtml()
+        {
+            Tag tag = getTag();
+            tag.Name = TagName;
+
+            string s = "";
+            s += tag.GetHtml();
+            s += base.GetHtml();
+            s += tag.GetHtmlEnd();
+            return s;
+        }
+    }
 
     public class HtmlImg : HtmlElement
     {
@@ -286,20 +315,20 @@ namespace HTML
             Items.Add(new HtmlText(text));
         }
 
-        public HtmlParagraph(string text, FontFamily font)
+        public HtmlParagraph(string text, FontFamilyTyp font)
         {
             HtmlText htmltext = new HtmlText(text, font);
             Items.Add(htmltext);
         }
 
-        public HtmlParagraph(string text, FontFamily font, HorizontalAlignment align)
+        public HtmlParagraph(string text, FontFamilyTyp font, HorizontalAlignment align)
         {
             HtmlText htmltext = new HtmlText(text, font);
             Items.Add(htmltext);
             HorizontalAlign = align;
         }
 
-        public HtmlParagraph(string text, FontFamily font, int size)
+        public HtmlParagraph(string text, FontFamilyTyp font, int size)
         {
             HtmlText htmltext = new HtmlText(text, font, size);
             Items.Add(htmltext);
@@ -335,6 +364,9 @@ namespace HTML
                     break;
                 case ParagraphTyp.HeadLine3:
                     p = "h3";
+                    break;
+                case ParagraphTyp.SourceCode:
+                    p = "pre";
                     break;
                 default:
                     p = "p";
@@ -403,10 +435,8 @@ namespace HTML
         protected override Tag getTag()
         {
             Tag tag = base.getTag();
-            tag.Name = "a";
             tag.Parameters.Add("href", HttpUtility.HtmlEncode(Url));
             tag.Parameters.Add("target", GetString(Target, FrameName));
-
             return tag;
         }
 
@@ -421,8 +451,6 @@ namespace HTML
             return s;
         }
     }
-
-
 
     public class HtmlBreak : HtmlElement
     {
@@ -445,7 +473,74 @@ namespace HTML
             string s = "";
             s += tag.GetHtml();
             s += base.GetHtml();
-            s += tag.GetHtmlEnd();
+            //s += tag.GetHtmlEnd();
+            return s;
+        }
+    }
+
+    public class HtmlList : HtmlElement
+    {
+        public StyleTyp Style = StyleTyp.None;
+        public StylePositionTyp StylePosition = StylePositionTyp.None;
+        public int Start = 1;                // 1 ist default, weil Start-Parameter >immer< generiert wird
+        public ReversedTyp Reversed = ReversedTyp.None;     // IE kann es nicht
+        public string ImageUrl = "";
+
+        public HtmlList()
+        {
+        }
+
+        protected override Tag getTag()
+        {
+            Tag tag = base.getTag();
+            tag.Parameters.Add("start", Start.ToString());  // wird immer generiert, deshalb mit ToString() statt mit GetString
+            if (Reversed != ReversedTyp.None) tag.Parameters.Add("reserved", "reserved");
+            tag.Styles.Add("list-style-type", GetString(Style));
+            tag.Styles.Add("list-style-position", GetString(StylePosition));
+            if (ImageUrl.Length>0) tag.Styles.Add("list-style-image", "url("+ImageUrl+")");
+            return tag;
+        }
+
+        public override string GetHtml()
+        {
+            string s = "";
+            if (Style == StyleTyp.SquareClamp)     // ohne Benutzung des HTML-Tag <ol>
+            {
+                Tag tag = base.getTag();
+                tag.Name = "p";
+                s += tag.GetHtml();
+                
+                int c = Start;
+                foreach (HtmlElement element in Items)
+                {
+                    s += "["+c.ToString()+"] ";
+                    s += element.GetHtml();
+                    s += "<br>";
+                    switch (Reversed)
+                    {
+                        case ReversedTyp.None:
+                            c++;
+                            break;
+                        case ReversedTyp.Reversed:
+                            c--;
+                            break;
+                    }
+                }
+            }
+            else
+            {
+                Tag tag = getTag();
+                tag.Name = "ol";     // ist immer Ordered List, weil mit CSS wird sie auch als <ul> angezeigt werden kann
+              
+                s += tag.GetHtml();
+                foreach (HtmlElement element in Items)
+                {
+                    s += "<li>";
+                    s += element.GetHtml();
+                    s += "</li>";
+                }
+                s += tag.GetHtmlEnd();
+            }
             return s;
         }
     }
@@ -457,6 +552,11 @@ namespace HTML
         public string Description = "";
         public string Generator = "";
         public string Keywords = "";
+        public string StyleFilename = "";
+        public string StyleCode = "";
+        public string ScriptCode = "";
+        public int RefreshTime = 0;
+        public string OnLoad = "";
 
         public HtmlPage()
             : base()
@@ -472,6 +572,7 @@ namespace HTML
         protected override Tag getTag()
         {
             Tag tag = base.getTag();
+            tag.Parameters.Add("onload", OnLoad);
             return tag;
         }
 
@@ -493,6 +594,7 @@ namespace HTML
         private string getHeader()
         {
             string s = "";
+            s += "<!DOCTYPE HTML>";
             s += "<html>";
             s += "<head>";
             if (Title.Length > 0)
@@ -501,6 +603,9 @@ namespace HTML
                 s += HttpUtility.HtmlEncode(Title);
                 s += "</title>";
             }
+
+
+            s += @"<meta charset=""UTF-8"">"; 
             
             if (Author.Length > 0)
             {
@@ -521,6 +626,32 @@ namespace HTML
                 s += @"<meta name=""keywords"" content=""";
                 s += HttpUtility.HtmlEncode(Keywords);
                 s += @""">";
+            }
+
+            if (StyleFilename.Length > 0)
+            {
+                s += @"<link rel=""stylesheet"" type=""text/css"" href=""";
+                s += StyleFilename;
+                s += @""">";
+            }
+
+            if (StyleCode.Length > 0)
+            {
+                s += @"<style type=""text/css"">";
+                s += StyleCode;
+                s += @"</style>";
+            }
+                        
+            if (ScriptCode.Length > 0)
+            {
+                s += @"<script type=""text/javascript"">";
+                s += ScriptCode;
+                s += @"</script>";
+            }
+
+            if (RefreshTime>0)
+            {
+                s += @"<meta http-equiv=""refresh"" content="""+RefreshTime.ToString()+@"; URL="" />";
             }
             s += "</head>";
 
@@ -567,11 +698,7 @@ namespace HTML
             s += tag.GetHtmlEnd();
             return s;
         }
-
-       
     }
-
-
 
     public class HtmlCell : HtmlElement
     {
@@ -630,9 +757,7 @@ namespace HTML
             if (Rows.Count > 1) 
                 throw new Exception("Das Einfügen von Spalten ist nur möglich, wenn die Tabelle leer ist.");
             HtmlCell cell = new HtmlCell();
-            HtmlText htmltext = new HtmlText(text, FontWeight.Bold);
-            cell.Add(htmltext);
-            cell.HorizontalAlign = HorizontalAlignment.Center;
+            cell.Text = text;
             Rows[0].Cells.Add(cell);
             return cell;
         }
@@ -679,6 +804,168 @@ namespace HTML
             {
                 s += row.GetHtml();
             }
+            s += tag.GetHtmlEnd();
+            return s;
+        }
+    }
+
+    public class HtmlForm : HtmlElement
+    {
+        public MethodTyp Method = MethodTyp.Get;
+        public string Action = "";
+
+        public HtmlForm()
+        {
+        }
+
+        public HtmlForm(string action)
+        {
+            Action = action;
+        }
+
+        public HtmlForm(string action, MethodTyp method)
+        {
+            Action = action;
+            Method = method;
+        }
+
+        protected override Tag getTag()
+        {
+            Tag tag = base.getTag();
+            tag.Parameters.Add("method", GetString(Method));
+            tag.Parameters.Add("action", HttpUtility.HtmlEncode(Action));
+            return tag;
+        }
+
+        public override string GetHtml()
+        {
+            Tag tag = getTag();
+            tag.Name = "form";
+
+            string s = "";
+            s += tag.GetHtml();
+            s += base.GetHtml();
+            s += tag.GetHtmlEnd();
+            return s;
+        }
+    }
+
+    public class HtmlInput : HtmlElement
+    {
+        public InputTyp InputType = InputTyp.Hidden;
+        public string Name = "";
+        public string Value = "";
+
+        public HtmlInput()
+        {
+        }
+
+        public HtmlInput(string name)
+        {
+            Name = name;
+        }
+
+        public HtmlInput(string name, string value)
+        {
+            Name = name;
+            Value = value;
+        }
+
+        public HtmlInput(string name, string value,InputTyp inputType)
+        {
+            Name = name;
+            Value = value;
+            InputType = inputType;
+        }
+
+        protected override Tag getTag()
+        {
+            Tag tag = base.getTag();
+            tag.Parameters.Add("type", GetString(InputType));
+            tag.Parameters.Add("name", Name);
+            tag.Parameters.Add("value", Value);            
+            return tag;
+        }
+
+        public override string GetHtml()
+        {
+            Tag tag = getTag();
+            tag.Name = "input";
+
+            string s = "";
+            s += tag.GetHtml();
+            s += base.GetHtml();
+            return s;
+        }
+    }
+
+    public class HtmlSelect : HtmlElement
+    {
+        public string Name = "";
+
+        public HtmlSelect()
+        {
+        }
+
+        public HtmlSelect(string name)
+        {
+            Name = name;
+        }
+
+        protected override Tag getTag()
+        {
+            Tag tag = base.getTag();
+            tag.Parameters.Add("name", Name);
+            return tag;
+        }
+
+        public override string GetHtml()
+        {
+            Tag tag = getTag();
+            tag.Name = "select";
+
+            string s = "";
+            s += tag.GetHtml();
+            s += base.GetHtml();
+            s += tag.GetHtmlEnd();
+            return s;
+        }
+    }
+
+    public class HtmlOption : HtmlElement
+    {
+        public string Value = "";
+
+        public HtmlOption()
+        {
+        }
+
+        public HtmlOption(string value)
+        {
+            Value = value;
+        }
+
+        public HtmlOption(string value, string text)
+        {
+            Value = value;
+            Text = text;
+        }
+
+        protected override Tag getTag()
+        {
+            Tag tag = base.getTag();
+            tag.Parameters.Add("value", Value);
+            return tag;
+        }
+
+        public override string GetHtml()
+        {
+            Tag tag = getTag();
+            tag.Name = "option";
+
+            string s = "";
+            s += tag.GetHtml();
+            s += base.GetHtml();
             s += tag.GetHtmlEnd();
             return s;
         }
@@ -781,20 +1068,32 @@ namespace HTML
     public enum TableRules { None, Groups, Rows, Cols, All };
     public enum HorizontalAlignment { None, Left, Right, Center, Justify };
     public enum VerticalAlignment { None, Length, Percent, Baseline, Sub, Super, Top, TextTop, Middle, Bottom, TextBottom };
-    public enum FontFamily { None, Serif, SansSerif, Cursive, Fantasy, Monospace, Arial, Courier, TimesNewRoman, Verdana };
+    public enum FontFamilyTyp { None, Serif, SansSerif, Cursive, Fantasy, Monospace, Arial, Courier, TimesNewRoman, Verdana };
     public enum FontSizeTyp { Length, Percent, SmallXX, SmallX, Small, Smaller, Larger, Medium, Large, LargeX, LargeXX };
     public enum FontWeight { None, Normal, Bold, Bolder, Lighter };
     public enum FontStyle { None, Normal, Italic, Olique };    // Achtung, Namensüberscheidung mit system.drawing.fontstyle
     public enum TextDecoration { None, Normal, Underline, Overline, LineTrought, Blink };
     public enum LinkTarget { None, Blank, Parent, Self, Top, Frame };
-    public enum ParagraphTyp { Paragraph, HeadLine1, HeadLine2, HeadLine3, /*Quellcode*/ };
+    public enum ParagraphTyp { Paragraph, HeadLine1, HeadLine2, HeadLine3, SourceCode };
     public enum BorderStyle { None, Hidden, Dotted, Dashed, Solid, Double, Groove, Ridge, Inset, Outset };
     public enum ValueTyp { Length, Percent };
     public enum FloatTyp { None, Left, Right };
+    public enum StyleTyp { None, Disc, Circle, Decimal, DecimalLeadingZero, LowerAlpha, UpperAlpha, Square, SquareClamp };
+    public enum StylePositionTyp { None, Inside, Outside };
+    public enum ReversedTyp { None, Reversed };
+    public enum MethodTyp { Get, Post };
+    public enum InputTyp { Hidden, Text, Password, Submit, Radio, Checkbox, Button, Color, Date, DateTime, Email, Month, Number, Range, Search, Tel, Time, Url, Week};
+    public enum DisplayTyp { None, Inline, Block, Flex, ListItem, Table };
+    public enum VisibilityTyp { None, Visible, Hidden, Collapse };
+    public enum PositionTyp { None, Static, Absolute, Fixed, Relative };
 
     public class HtmlElement : HtmlObject
     {
-        public FontFamily FontFamily = FontFamily.None;
+        public string ID = "";
+        public string Class = "";
+        public bool ContentEditable = false;
+        public DisplayTyp Display = DisplayTyp.None;
+        public FontFamilyTyp FontFamily = FontFamilyTyp.None;
         public int FontSize = 0;
         public FontSizeTyp FontSizeTyp = FontSizeTyp.Length;
         public FontWeight FontWeight = FontWeight.None;
@@ -809,22 +1108,44 @@ namespace HTML
         public Color Color;
         public int Width = 0;
         public ValueTyp WidthTyp = ValueTyp.Length;
+        public int Left = 0;
+        public ValueTyp LeftTyp = ValueTyp.Length;
+        public int Top = 0;
+        public ValueTyp TopTyp = ValueTyp.Length;
         public int Height = 0;
         public ValueTyp HeightTyp = ValueTyp.Length;
         public string Text = "";
         public string ToolTip = "";
+        public VisibilityTyp Visibility = VisibilityTyp.None;
+        public PositionTyp Position = PositionTyp.None;
         public FloatTyp Float = FloatTyp.None;
         public Sides<int> Padding = new Sides<int>();          //public Padding Padding = Padding.Empty;
         public Sides<int> Margin = new Sides<int>();
         public Sides<int> BorderWidth = new Sides<int>();
         public Sides<BorderStyle> BorderStyle = new Sides<BorderStyle>();
         public Sides<Color> BorderColor = new Sides<Color>();
-
+        public string OnClick = "";
+        public string OnContextMenu = "";
+        public string OnMouseOver = "";
+        public string OnMouseOut = "";
+        public string OnMouseDown = "";
+        
 
         protected override Tag getTag()
         {
             Tag tag = base.getTag();
+            tag.Parameters.Add("id", ID);
+            tag.Parameters.Add("class", Class);
             tag.Parameters.Add("title", HttpUtility.HtmlEncode(ToolTip));  // Tooltip ist Title
+            tag.Parameters.Add("contenteditable", GetString(ContentEditable));
+            tag.Parameters.Add("onclick", OnClick);
+            tag.Parameters.Add("oncontextmenu", OnContextMenu);
+            tag.Parameters.Add("onmouseover", OnMouseOver);
+            tag.Parameters.Add("onmouseout", OnMouseOut);
+            tag.Parameters.Add("onmousedown", OnMouseDown);
+            tag.Styles.Add("display", GetString(Display));
+            tag.Styles.Add("visibility", GetString(Visibility));
+            tag.Styles.Add("position", GetString(Position));
             tag.Styles.Add("font-family", GetString(FontFamily));
             tag.Styles.Add("font-size", GetString(FontSize,FontSizeTyp));   
             tag.Styles.Add("font-weight", GetString(FontWeight));
@@ -834,6 +1155,8 @@ namespace HTML
             tag.Styles.Add("color", GetString(Color));
             tag.Styles.Add("background-color", GetString(BackgroundColor));
             tag.Styles.Add("text-decoration", GetString(TextDecoration));
+            tag.Styles.Add("left", GetString(Left, LeftTyp));
+            tag.Styles.Add("top", GetString(Top, TopTyp));
             tag.Styles.Add("width", GetString(Width, WidthTyp));
             tag.Styles.Add("height", GetString(Height, HeightTyp));
             tag.Styles.Add("line-height", GetString(LineHeight, LineHeightTyp));
@@ -855,7 +1178,7 @@ namespace HTML
         public override string GetHtml()
         {
             string s = "";
-            s += HttpUtility.HtmlEncode(Text);
+            s += HttpUtility.HtmlEncode(Text);//.Replace("\n", "<br>"); wird mit css white-space:pre-wrap gelöst
             s += base.GetHtml();
             return s;
         }
@@ -872,12 +1195,47 @@ namespace HTML
                 return BorderWidth.All;
             }
         }
+
+        public bool Visible
+        { 
+	     set
+             {
+                 if (value)
+                 {
+                     Visibility = VisibilityTyp.Visible;
+                 }
+                 else
+                 {
+                     Visibility = VisibilityTyp.Hidden;
+                 }
+             }
+             get 
+             {
+                 bool b = false;
+                 switch (Visibility)
+                 {
+                     case VisibilityTyp.None:
+                         b = true;
+                         break;
+                     case VisibilityTyp.Visible:
+                         b = true;
+                         break;
+                     case VisibilityTyp.Hidden:
+                         b = false;
+                         break;
+                     case VisibilityTyp.Collapse:
+                         b = false;
+                         break;
+                 }
+                 return b;
+             }
+	}
+
     }
 
     public class HtmlObject
     {
         public List<HtmlObject> Items;
-
 
         public HtmlObject()
         {
@@ -889,9 +1247,9 @@ namespace HTML
             Items.Add(element);
         }
 
-        protected virtual Tag getTag()
+        public void Add(string text)
         {
-            return new Tag();
+            Items.Add(new HtmlText(text));
         }
 
         public virtual string GetHtml()
@@ -904,6 +1262,10 @@ namespace HTML
 
             return s;
         }
+        protected virtual Tag getTag()
+        {
+            return new Tag();
+        }
 
         protected string GetString(HorizontalAlignment align)
         {
@@ -911,16 +1273,16 @@ namespace HTML
             switch (align)
             {
                 case HorizontalAlignment.Left:
-                    p += "left";
+                    p = "left";
                     break;
                 case HorizontalAlignment.Right:
-                    p += "right";
+                    p = "right";
                     break;
                 case HorizontalAlignment.Center:
-                    p += "center";
+                    p = "center";
                     break;
                 case HorizontalAlignment.Justify:
-                    p += "justify";
+                    p = "justify";
                     break;
                 default:
                     break;
@@ -1095,36 +1457,36 @@ namespace HTML
             return p;
         }
 
-        protected string GetString(FontFamily fontfamily)
+        protected string GetString(FontFamilyTyp fontfamily)
         {
             string p = "";
             switch (fontfamily)
             {
-                case FontFamily.Serif:
+                case FontFamilyTyp.Serif:
                     p = "serif";
                     break;
-                case FontFamily.SansSerif:
+                case FontFamilyTyp.SansSerif:
                     p = "sans-serif";
                     break;
-                case FontFamily.Cursive:
+                case FontFamilyTyp.Cursive:
                     p = "cursive";
                     break;
-                case FontFamily.Fantasy:
+                case FontFamilyTyp.Fantasy:
                     p = "fantasy";
                     break;
-                case FontFamily.Monospace:
+                case FontFamilyTyp.Monospace:
                     p = "monospace";
                     break;
-                case FontFamily.Arial:
+                case FontFamilyTyp.Arial:
                     p = "Arial";
                     break;
-                case FontFamily.Courier:
+                case FontFamilyTyp.Courier:
                     p = "Courier New";
                     break;
-                case FontFamily.TimesNewRoman:
+                case FontFamilyTyp.TimesNewRoman:
                     p = "Times New Roman";
                     break;
-                case FontFamily.Verdana:
+                case FontFamilyTyp.Verdana:
                     p = "Verdana";
                     break;
                 default:
@@ -1160,7 +1522,7 @@ namespace HTML
         {
             string p = "";
             switch (decoration)
-            {       
+            {
                 case TextDecoration.Normal:   // Normal bedeuted: Text OHNE Decoration (text-decoration:none)
                     p = "none";
                     break;
@@ -1182,13 +1544,13 @@ namespace HTML
             return p;
         }
 
-        protected string GetString(int FontSize,FontSizeTyp sizetyp)
+        protected string GetString(int FontSize, FontSizeTyp sizetyp)
         {
             string p = "";
             switch (sizetyp)
             {
                 case FontSizeTyp.Length:
-                    p = FontSize<=0 ? "" :  GetString(FontSize)+"px";
+                    p = FontSize <= 0 ? "" : GetString(FontSize) + "px";
                     break;
                 case FontSizeTyp.Percent:
                     p = FontSize <= 0 ? "" : GetString(FontSize) + "%";
@@ -1241,6 +1603,108 @@ namespace HTML
             return p;
         }
 
+        protected string GetString(StyleTyp listStyle)
+        {
+            string p = "";
+            switch (listStyle)
+            {
+                case StyleTyp.None:
+                    p = "disc";
+                    break;
+                case StyleTyp.Disc:
+                    p = "disc";
+                    break;
+                case StyleTyp.Circle:
+                    p = "circle";
+                    break;
+                case StyleTyp.Decimal:
+                    p = "decimal";
+                    break;
+                case StyleTyp.DecimalLeadingZero:
+                    p = "decimal-leading-zero";
+                    break;
+                case StyleTyp.LowerAlpha:
+                    p = "lower-alpha";
+                    break;
+                case StyleTyp.UpperAlpha:
+                    p = "upper-alpha";
+                    break;
+                case StyleTyp.Square:
+                    p = "square";
+                    break;
+            }
+            return p;
+        }
+
+        protected string GetString(ReversedTyp ReverseTyp)
+        {
+            string p = "";
+            switch (ReverseTyp)
+            {
+                case ReversedTyp.None:
+                    break;
+                case ReversedTyp.Reversed:
+                    break;
+                default:
+                    break;
+            }
+            return p;
+        }
+
+        protected string GetString(VisibilityTyp VisibilityTyp)
+        {
+            string p = "";
+            switch (VisibilityTyp)
+            {
+                case VisibilityTyp.Visible:
+                    p = "visible";
+                    break;
+                case VisibilityTyp.Hidden:
+                    p = "hidden";
+                    break;
+                case VisibilityTyp.Collapse:
+                    p = "collapse";
+                    break;
+            }
+            return p;
+        }
+
+        protected string GetString(PositionTyp PositionTyp)
+        {
+            string p = "";
+            switch (PositionTyp)
+            {
+                case PositionTyp.Static:
+                    p = "static";
+                    break;
+                case PositionTyp.Absolute:
+                    p = "absolute";
+                    break;
+                case PositionTyp.Fixed:
+                    p = "fixed";
+                    break;
+                case PositionTyp.Relative:
+                    p = "relative";
+                    break;
+             }
+            return p;
+        }
+
+        protected string GetString(StylePositionTyp listStylePosition)
+        {
+            string p = "";
+            switch (listStylePosition)
+            {
+                case StylePositionTyp.Inside:
+                    p = "inside";
+                    break;
+                case StylePositionTyp.Outside:
+                    p = "outside";
+                    break;
+            }
+            return p;
+        }
+
         protected string GetString(FontStyle fontstyle)
         {
             string p = "";
@@ -1283,9 +1747,120 @@ namespace HTML
             return p;
         }
 
+        protected string GetString(MethodTyp method)
+        {
+            string p = "";
+            switch (method)
+            {
+                case MethodTyp.Get:
+                    p = "get";
+                    break;
+                case MethodTyp.Post:
+                    p = "post";
+                    break;
+                
+            }
+            return p;
+        }
+
+        protected string GetString(InputTyp inputType)
+        {
+            string p = "";
+            switch (inputType)
+            {
+                case InputTyp.Hidden:
+                    p = "hidden";
+                    break;
+                case InputTyp.Text:
+                    p = "text";
+                    break;
+                case InputTyp.Password:
+                    p = "password";
+                    break;
+                case InputTyp.Submit:
+                    p = "submit";
+                    break;
+                case InputTyp.Radio:
+                    p = "radio";
+                    break;
+                case InputTyp.Checkbox:
+                    p = "checkbox";
+                    break;
+                case InputTyp.Button:
+                    p = "button";
+                    break;
+                case InputTyp.Color:
+                    p = "color";
+                    break;
+                case InputTyp.Date:
+                    p = "date";
+                    break;
+                case InputTyp.DateTime:
+                    p = "datetime";
+                    break;
+                case InputTyp.Email:
+                    p = "email";
+                    break;
+                case InputTyp.Month:
+                    p = "month";
+                    break;
+                case InputTyp.Number:
+                    p = "number";
+                    break;
+                case InputTyp.Range:
+                    p = "range";
+                    break;
+                case InputTyp.Search:
+                    p = "search";
+                    break;
+                case InputTyp.Tel:
+                    p = "tel";
+                    break;
+                case InputTyp.Time:
+                    p = "time";
+                    break;
+                case InputTyp.Url:
+                    p = "url";
+                    break;
+                case InputTyp.Week:
+                    p = "week";
+                    break;
+            }
+            return p;
+        }
+
+        protected string GetString(DisplayTyp display)
+        {
+            string p = "";
+            switch (display)
+            {
+                case DisplayTyp.Inline:
+                    p = "inline";
+                    break;
+                case DisplayTyp.Block:
+                    p = "block";
+                    break;
+                case DisplayTyp.Flex:
+                    p = "flex";
+                    break;
+                case DisplayTyp.ListItem:
+                    p = "list-item";
+                    break;
+                case DisplayTyp.Table:
+                    p = "table";
+                    break;
+            }
+            return p;
+        }
+
         protected string GetString(int value)
         {
             return (value <= 0) ? "" : value.ToString();
+        }
+
+        protected string GetString(bool value)
+        {
+            return (value) ? "true" : "";
         }
 
         protected string GetString(int value, ValueTyp typ)
